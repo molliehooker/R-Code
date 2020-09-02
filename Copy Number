@@ -1,0 +1,73 @@
+#CNV
+gdsc.cnv <- as.matrix(read.table("SangerCCLE_CNVtable_byGene.txt",sep="\t",head=T,row.names=1))
+
+cellline.annot <- read.table("Cell_Lines_Details-1.csv",sep="\t",head=T,row.names=1)
+
+head(cellline.annot)
+
+ic50s <- as.matrix(read.table("SangerCCLE_LNIC50s_withICLcompounds.txt",sep="\t",head=T,row.names=1))
+hkmtIC50uM <- cbind(as.data.frame(exp(ic50s[,266:268])),Tissue=cellline.annot[rownames(ic50s),"GDSC.Tissue.descriptor.2"],Tissue.broad=cellline.annot[rownames(ic50s),"GDSC.Tissue.descriptor.1"])
+
+hkmtIC50uM.mapped <- hkmtIC50uM[gsub(rownames(hkmtIC50uM),pattern="-",replace=".",fixed=T) %in% colnames(gdsc.cnv),]
+rownames(hkmtIC50uM.mapped) <- gsub(rownames(hkmtIC50uM.mapped),pattern="-",replace=".",fixed=T)
+colnames(gdsc.cnv) <- gsub(colnames(gdsc.cnv),pattern="-",replace=".",fixed=T)
+
+library(limma)
+IDs <- c("MYC", "MAX", "MYCN", "MYCL1")
+for(i in IDs) {
+print(i)
+
+EHMT2box <- list(cn=hkmtIC50uM.mapped$HKMTI.1.005[which(hkmtIC50uM.mapped$Tissue.broad=="lung_NSCLC")][which(gdsc.cnv[i,rownames(hkmtIC50uM.mapped)[which(hkmtIC50uM.mapped$Tissue.broad=="lung_NSCLC")]]==2)],gain=hkmtIC50uM.mapped$HKMTI.1.005[which(hkmtIC50uM.mapped$Tissue.broad=="lung_NSCLC")][which(gdsc.cnv[i,rownames(hkmtIC50uM.mapped)[which(hkmtIC50uM.mapped$Tissue.broad=="lung_NSCLC")]]>2 & gdsc.cnv[i,rownames(hkmtIC50uM.mapped)[which(hkmtIC50uM.mapped$Tissue.broad=="lung_NSCLC")]]<5)],amp=hkmtIC50uM.mapped$HKMTI.1.005[which(hkmtIC50uM.mapped$Tissue.broad=="lung_NSCLC")][which(gdsc.cnv[i,rownames(hkmtIC50uM.mapped)[which(hkmtIC50uM.mapped$Tissue.broad=="lung_NSCLC")]]>=5)])
+names(EHMT2box) <- c("cn=2","2<cn<5","cn>=5")
+
+names(EHMT2box) <- c("cn=2","2<cn<5","cn>=5")
+
+png(paste(i, file="_HKMTI.1.005_lung_NSCLC_by_cn.png"),width=8,height=6,units='in',res=300)
+boxplot(EHMT2box,ylab="IC50 (uM)", main=paste(i, "HKMTI.1.005 sensitivity in lung_NSCLC by copy number"))
+dev.off()
+
+png(paste(i, file="_HKMTI.1.005_lnIC50_lung_NSCLC_by_cn.png"),width=8,height=6,units='in',res=300)
+boxplot(lapply(EHMT2box,log),ylab="log(IC50(uM))", main=paste(i, "HKMTI.1.005 sensitivity in lung_NSCLC by copy number"))
+dev.off()
+}
+
+EHMT2box <- list(cn=hkmtIC50uM.mapped$HKMTI.1.005[which(hkmtIC50uM.mapped$Tissue.broad=="lung_NSCLC")][which(gdsc.cnv["MYC",rownames(hkmtIC50uM.mapped)[which(hkmtIC50uM.mapped$Tissue.broad=="lung_NSCLC")]]
+==2)],gain=hkmtIC50uM.mapped$HKMTI.1.005[which(hkmtIC50uM.mapped$Tissue.broad=="lung_NSCLC")][which(gdsc.cnv["MYC",rownames(hkmtIC50uM.mapped)[which(hkmtIC50uM.mapped$Tissue.broad=="lung_NSCLC")]]>2 & gdsc.cnv
+["MYC",rownames(hkmtIC50uM.mapped)[which(hkmtIC50uM.mapped$Tissue.broad=="lung_NSCLC")]]<5)],amp=hkmtIC50uM.mapped$HKMTI.1.005[which(hkmtIC50uM.mapped$Tissue.broad=="lung_NSCLC")][which(gdsc.cnv["MYC",rownames
+(hkmtIC50uM.mapped)[which(hkmtIC50uM.mapped$Tissue.broad=="lung_NSCLC")]]>=5)])
+names(EHMT2box) <- c("cn=2","2<cn<5","cn>=5")
+
+x <- data.frame(t(sapply(EHMT2box,c)))
+colnames(x)
+y <- as.data.frame(x$cn.2)
+z <- na.omit(y)
+z
+
+a <- as.data.frame(x$X2.cn.5)
+b <- na.omit(a)
+b
+
+c <- as.data.frame(x$cn..5)
+cc <- na.omit(c)
+cc
+dim(z)
+dim(b)
+dim(c)
+
+#add data to box plot
+boxplot(EHMT2box,ylab="IC50 (uM)", main=paste("MYC", "GSK343 sensitivity in lung_NSCLC by copy number"))
+
+boundaries <- boxplot(lapply(EHMT2box,log),ylab="log(IC50(uM))", main=paste("MYC", "GSK343 sensitivity in lung_NSCLC by copy number")) 
+
+png(paste("MYC", file="_GSK343_lnIC50_lung_NSCLC_by_cn.png"),width=8,height=6,units='in',res=300)
+boxplot(lapply(EHMT2box,log),ylab="log(IC50(uM))", main=paste("MYC", "GSK343 sensitivity in lung_NSCLC by copy number"))
+text(x= 1, y= 7, labels= "n=6")
+text(x= 2, y= 7, labels= "n=16")
+text(x= 3, y= 7, labels= "n=22” ) 
+dev.off()
+
+write.csv(z, file="test_1.csv")
+
+write.csv(b, file="test_2.csv")
+
+write.csv(c, file="test_3.csv")
