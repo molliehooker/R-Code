@@ -1,0 +1,30 @@
+#Expression
+gdsc.gx <- as.matrix(read.table("sanger1018_geneexpression_genesymbol_rma.txt",sep="\t",head=T,row.names=1))
+
+cellline.annot <- read.table("Cell_Lines_Details-1.csv",sep="\t",head=T,row.names=1)
+
+head(cellline.annot)
+ic50s <- as.matrix(read.table("SangerCCLE_LNIC50s_withICLcompounds.txt",sep="\t",head=T,row.names=1))
+hkmtIC50uM <- cbind(as.data.frame(exp(ic50s[,266:268])),Tissue=cellline.annot[rownames(ic50s),"GDSC.Tissue.descriptor.2"],Tissue.broad=cellline.annot[rownames(ic50s),"GDSC.Tissue.descriptor.1"])
+
+hkmtIC50uM.mapped <- hkmtIC50uM[gsub(rownames(hkmtIC50uM),pattern="-",replace=".",fixed=T) %in% colnames(gdsc.gx),]
+rownames(hkmtIC50uM.mapped) <- gsub(rownames(hkmtIC50uM.mapped),pattern="-",replace=".",fixed=T)
+colnames(gdsc.gx) <- gsub(colnames(gdsc.gx),pattern="-",replace=".",fixed=T)
+
+library(limma)
+IDs <- c("MYC")
+for(i in IDs) {
+print(i)
+
+EHMT2box <- list(cn=hkmtIC50uM.mapped$GSK343[which(hkmtIC50uM.mapped$Tissue.broad=="lung_NSCLC")][which(gdsc.gx[i,rownames(hkmtIC50uM.mapped)[which(hkmtIC50uM.mapped$Tissue.broad=="lung_NSCLC")]]<=10.9)],gain=hkmtIC50uM.mapped$GSK343[which(hkmtIC50uM.mapped$Tissue.broad=="lung_NSCLC")][which(gdsc.gx[i,rownames(hkmtIC50uM.mapped)[which(hkmtIC50uM.mapped$Tissue.broad=="lung_NSCLC")]]>=10.9)]) 
+
+names(EHMT2box) <- c("cn<=10.9","cn>=10.9")
+
+png(paste(i, file="_GSK343_lung_NSCLC_by_cn.png"),width=8,height=6,units='in',res=300)
+boxplot(EHMT2box,ylab="IC50 (uM)", main=paste(i, "GSK343 sensitivity in lung_NSCLC by expression"))
+dev.off()
+
+png(paste(i, file="_GSK343_lnIC50_lung_NSCLC_by_cn.png"),width=8,height=6,units='in',res=300)
+boxplot(lapply(EHMT2box,log),ylab="log(IC50(uM))", main=paste(i, "GSK343 sensitivity in lung_NSCLC by expression"))
+dev.off()
+}
